@@ -15,8 +15,12 @@ FIX:
 3. adding the `end` connection to condition for set back busy to false.
 4. on line 110-111 lib/webrtc.ts call `setRemoteDescription` first, then `flushPendingCandidates`, so the queued ICE candidates are added after the offer or answer is set.
 
-FEATURE:
+Added FEATURE:
 1. Added a popup after Enter Pulse asking if you are 18 or older, to protect minors. Yes continues. No shows Not allowed.
+2. Added a gender selection soo we know if we are talking to a girl or boy
+3. Added Report mechanism to block user if them was reported multiple times. to prevent inapropriate chatting.
+4. Show list of request you can received multiple request also you can reject or accept them
+5. added a top overlay shows how many currently online 
 
 PHASE 3 — security:
 Ranked by what I would block before launch.
