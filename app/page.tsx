@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import EntryGate from "./components/EntryGate";
 import WorldMap from "./components/WorldMap";
 import ConnectionPrompt from "./components/ConnectionPrompt";
+import RequestList from "./components/RequestList";
 import ChatPanel, { type ChatMessage } from "./components/ChatPanel";
 import VideoPanel from "./components/VideoPanel";
 import { join, leave, poll, sendSignal } from "@/lib/api";
@@ -14,9 +15,10 @@ import { type PeerDot, type SignalMsg } from "@/lib/types";
 type Conn =
   | { kind: "idle" }
   | { kind: "requesting"; peerId: string }
-  | { kind: "incoming"; peerId: string }
   | { kind: "connecting"; peerId: string }
   | { kind: "connected"; peerId: string };
+
+type IncomingRequest = { peerId: string };
 
 type VideoState = "none" | "requesting" | "incoming" | "active";
 
@@ -33,6 +35,14 @@ export default function Home() {
   const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(
     null,
   );
+
+  const [dotPromptId, setDotPromptId] = useState<string | null>(null);
+  const [incoming, _setIncoming] = useState<IncomingRequest[]>([]);
+  const incomingRef = useRef<IncomingRequest[]>([]);
+  const setIncoming = (next: IncomingRequest[]) => {
+    incomingRef.current = next;
+    _setIncoming(next);
+  };
 
   const [conn, _setConn] = useState<Conn>({ kind: "idle" });
   const connRef = useRef<Conn>(conn);
@@ -128,8 +138,21 @@ export default function Home() {
     }
   }
 
+  function declineAllIncoming() {
+    for (const request of incomingRef.current) {
+      void sendSignal(sessionId, request.peerId, "decline");
+    }
+    setIncoming([]);
+  }
+
   function requestConnection(peerId: string) {
     if (connRef.current.kind !== "idle") return;
+    if (incomingRef.current.some((request) => request.peerId === peerId)) {
+      setDotPromptId(peerId);
+      return;
+    }
+    setDotPromptId(null);
+    declineAllIncoming();
     setConn({ kind: "requesting", peerId });
     void sendSignal(sessionId, peerId, "request");
     requestTimer.current = setTimeout(() => {
@@ -150,18 +173,25 @@ export default function Home() {
     teardown();
   }
 
-  function acceptIncoming() {
-    if (connRef.current.kind !== "incoming") return;
-    const peerId = connRef.current.peerId;
-    startPeer(peerId, false);
-    void sendSignal(sessionId, peerId, "accept");
+  async function acceptIncoming(peerId: string) {
+    if (connRef.current.kind !== "idle") return;
+    setDotPromptId(null);
+    const others = incomingRef.current.filter((request) => request.peerId !== peerId);
+    setIncoming([]);
     setConn({ kind: "connecting", peerId });
+    startPeer(peerId, false);
+    // Decline the rest before accepting. A later decline would clear `busy`
+    // for this session too.
+    for (const request of others) {
+      await sendSignal(sessionId, request.peerId, "decline");
+    }
+    await sendSignal(sessionId, peerId, "accept");
   }
 
-  function declineIncoming() {
-    if (connRef.current.kind !== "incoming") return;
-    void sendSignal(sessionId, connRef.current.peerId, "decline");
-    setConn({ kind: "idle" });
+  function declineIncoming(peerId: string) {
+    setDotPromptId((current) => (current === peerId ? null : current));
+    void sendSignal(sessionId, peerId, "decline");
+    setIncoming(incomingRef.current.filter((request) => request.peerId !== peerId));
   }
 
   function endConnection() {
@@ -211,11 +241,14 @@ export default function Home() {
   function processSignal(sig: SignalMsg) {
     switch (sig.type) {
       case "request": {
-        if (connRef.current.kind === "idle") {
-          setConn({ kind: "incoming", peerId: sig.fromId });
-        } else {
+        if (connRef.current.kind !== "idle") {
           void sendSignal(sessionId, sig.fromId, "decline");
+          break;
         }
+        if (incomingRef.current.some((request) => request.peerId === sig.fromId)) {
+          break;
+        }
+        setIncoming([...incomingRef.current, { peerId: sig.fromId }]);
         break;
       }
       case "accept": {
@@ -250,15 +283,18 @@ export default function Home() {
         break;
       }
       case "end": {
+        if (incomingRef.current.some((request) => request.peerId === sig.fromId)) {
+          setIncoming(
+            incomingRef.current.filter((request) => request.peerId !== sig.fromId),
+          );
+          setDotPromptId((current) => (current === sig.fromId ? null : current));
+        }
         const c = connRef.current;
         if (
-          (c.kind === "incoming" ||
-            c.kind === "connecting" ||
-            c.kind === "connected") &&
+          (c.kind === "connecting" || c.kind === "connected") &&
           c.peerId === sig.fromId
         ) {
-          if (c.kind === "incoming") setConn({ kind: "idle" });
-          else teardown("Stranger disconnected.");
+          teardown("Stranger disconnected.");
         }
         break;
       }
@@ -346,15 +382,30 @@ export default function Home() {
         </div>
       )}
 
-      {conn.kind === "incoming" && (
-        <ConnectionPrompt
-          title={`${nameFor(conn.peerId)} wants to connect`}
-          acceptLabel="Accept"
-          declineLabel="Decline"
-          onAccept={acceptIncoming}
-          onDecline={declineIncoming}
-        />
-      )}
+      {dotPromptId &&
+        incoming.some((request) => request.peerId === dotPromptId) && (
+          <ConnectionPrompt
+            title={`${nameFor(dotPromptId)} already requested you`}
+            subtitle="Accept to connect, or decline."
+            acceptLabel="Accept"
+            declineLabel="Decline"
+            onAccept={() => {
+              void acceptIncoming(dotPromptId);
+            }}
+            onDecline={() => declineIncoming(dotPromptId)}
+          />
+        )}
+
+      <RequestList
+        requests={incoming.map((request) => ({
+          peerId: request.peerId,
+          name: nameFor(request.peerId),
+        }))}
+        onAccept={(peerId) => {
+          void acceptIncoming(peerId);
+        }}
+        onDecline={declineIncoming}
+      />
 
       {inChat && (
         <ChatPanel
