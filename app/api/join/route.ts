@@ -2,16 +2,15 @@ import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { applyPrivacyOffset, isValidLatLng } from "@/lib/geo";
 import { isGender } from "@/lib/types";
+import { isSessionId, newSecret, sanitizeName } from "@/lib/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const NAME_MAX = 20;
-
 // POST /api/join — body { id, name, gender, lat, lng } (raw coords).
-// Applies a 1–3 km privacy offset and upserts the presence row. Raw
-// coordinates are never stored. The name and gender live on that row and
-// are removed with it when the session ends.
+// Applies a 1–3 km privacy offset and creates the presence row. Raw
+// coordinates are never stored. The public id is visible to other dots;
+// the returned secret is not, and later calls must present it.
 export async function POST(request: NextRequest) {
   let body: unknown;
   try {
@@ -22,14 +21,14 @@ export async function POST(request: NextRequest) {
 
   const { id, name, gender, lat, lng } = (body ?? {}) as Record<string, unknown>;
 
-  if (typeof id !== "string" || id.length < 8 || id.length > 64) {
+  if (!isSessionId(id)) {
     return Response.json({ error: "invalid id" }, { status: 400 });
   }
   if (typeof name !== "string") {
     return Response.json({ error: "invalid name" }, { status: 400 });
   }
-  const displayName = name.trim();
-  if (displayName.length < 1 || displayName.length > NAME_MAX) {
+  const displayName = sanitizeName(name);
+  if (!displayName) {
     return Response.json({ error: "invalid name" }, { status: 400 });
   }
   if (!isGender(gender)) {
@@ -39,12 +38,21 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "invalid coordinates" }, { status: 400 });
   }
 
-  const offset = applyPrivacyOffset(lat as number, lng as number);
-
-  await prisma.presence.upsert({
+  const existing = await prisma.presence.findUnique({
     where: { id },
-    create: {
+    select: { id: true },
+  });
+  if (existing) {
+    return Response.json({ error: "session already exists" }, { status: 409 });
+  }
+
+  const offset = applyPrivacyOffset(lat as number, lng as number);
+  const secret = newSecret();
+
+  await prisma.presence.create({
+    data: {
       id,
+      secret,
       name: displayName,
       gender,
       lat: offset.lat,
@@ -52,14 +60,7 @@ export async function POST(request: NextRequest) {
       busy: false,
       lastSeen: new Date(),
     },
-    update: {
-      name: displayName,
-      gender,
-      lat: offset.lat,
-      lng: offset.lng,
-      lastSeen: new Date(),
-    },
   });
 
-  return Response.json({ ok: true });
+  return Response.json({ ok: true, secret });
 }

@@ -17,3 +17,11 @@ FIX:
 
 FEATURE:
 1. Added a popup after Enter Pulse asking if you are 18 or older, to protect minors. Yes continues. No shows Not allowed.
+
+PHASE 3 — security:
+Ranked by what I would block before launch.
+1. High: poll returns every dot's session id, and that same id was the only credential. Anyone on the map could poll as you (steal the call setup), leave as you, or send signals as you. Fixed: join returns a secret that is never shown to other dots. Poll, signal, and leave require it.
+2. High: accept/decline/end flipped `busy` for any two ids, so a stranger could lock someone into "busy" or free someone who is already in a call. Fixed: a request is stored as a knock; accept works only for that knock; decline of someone else no longer clears an active call; end only clears the pair that is actually connected.
+3. Medium: signal, poll, and leave accepted any string as an id, and one session could fill another mailbox. Fixed: ids must be uuids, signal payloads stay capped, and one session can send at most 80 signals a minute.
+4. Low: display names were not stripped of control characters. Fixed on join.
+Not done: there is still no account login, on purpose. The secret only lasts for the session. Edge rate limiting (a shared limiter in front of the app) would still help against a flood of brand-new joins.

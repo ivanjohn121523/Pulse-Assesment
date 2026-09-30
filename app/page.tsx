@@ -60,12 +60,17 @@ export default function Home() {
   };
 
   const peerRef = useRef<PeerSession | null>(null);
+  const secretRef = useRef("");
   const msgId = useRef(0);
   const requestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function showNotice(text: string) {
     setNotice(text);
     window.setTimeout(() => setNotice(null), 3500);
+  }
+
+  function postSignal(toId: string, type: SignalMsg["type"] | "offer" | "answer" | "ice", payload?: string) {
+    return sendSignal(sessionId, toId, type, payload, secretRef.current);
   }
 
   function addMessage(mine: boolean, text: string) {
@@ -87,7 +92,7 @@ export default function Home() {
   function startPeer(peerId: string, initiator: boolean) {
     const ps = new PeerSession(initiator, {
       onSignal: (type: DescType, payload: string) => {
-        void sendSignal(sessionId, peerId, type, payload);
+        void postSignal(peerId, type, payload);
       },
       onChat: (text) => addMessage(false, text),
       onControl: (ctrl) => handleControl(ctrl),
@@ -141,7 +146,7 @@ export default function Home() {
 
   function declineAllIncoming() {
     for (const request of incomingRef.current) {
-      void sendSignal(sessionId, request.peerId, "decline");
+      void postSignal(request.peerId, "decline");
     }
     setIncoming([]);
   }
@@ -155,13 +160,13 @@ export default function Home() {
     setDotPromptId(null);
     declineAllIncoming();
     setConn({ kind: "requesting", peerId });
-    void sendSignal(sessionId, peerId, "request");
+    void postSignal(peerId, "request");
     requestTimer.current = setTimeout(() => {
       if (
         connRef.current.kind === "requesting" &&
         connRef.current.peerId === peerId
       ) {
-        void sendSignal(sessionId, peerId, "end");
+        void postSignal(peerId, "end");
         teardown("No answer.");
       }
     }, REQUEST_TIMEOUT_MS);
@@ -169,7 +174,7 @@ export default function Home() {
 
   function cancelRequest() {
     if (connRef.current.kind === "requesting") {
-      void sendSignal(sessionId, connRef.current.peerId, "end");
+      void postSignal(connRef.current.peerId, "end");
     }
     teardown();
   }
@@ -184,21 +189,21 @@ export default function Home() {
     // Decline the rest before accepting. A later decline would clear `busy`
     // for this session too.
     for (const request of others) {
-      await sendSignal(sessionId, request.peerId, "decline");
+      await postSignal(request.peerId, "decline");
     }
-    await sendSignal(sessionId, peerId, "accept");
+    await postSignal(peerId, "accept");
   }
 
   function declineIncoming(peerId: string) {
     setDotPromptId((current) => (current === peerId ? null : current));
-    void sendSignal(sessionId, peerId, "decline");
+    void postSignal(peerId, "decline");
     setIncoming(incomingRef.current.filter((request) => request.peerId !== peerId));
   }
 
   function endConnection() {
     const c = connRef.current;
     if (c.kind === "connecting" || c.kind === "connected") {
-      void sendSignal(sessionId, c.peerId, "end");
+      void postSignal(c.peerId, "end");
     }
     teardown();
   }
@@ -243,7 +248,7 @@ export default function Home() {
     switch (sig.type) {
       case "request": {
         if (connRef.current.kind !== "idle") {
-          void sendSignal(sessionId, sig.fromId, "decline");
+          void postSignal(sig.fromId, "decline");
           break;
         }
         if (incomingRef.current.some((request) => request.peerId === sig.fromId)) {
@@ -314,7 +319,7 @@ export default function Home() {
 
     const tick = async () => {
       try {
-        const data = await poll(sessionId);
+        const data = await poll(sessionId, secretRef.current);
         if (!active) return;
         setPeers(data.peers);
         for (const s of data.signals) processSignalRef.current(s);
@@ -331,7 +336,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!sessionId || phase !== "live") return;
-    const onLeave = () => leave(sessionId);
+    const onLeave = () => leave(sessionId, secretRef.current);
     window.addEventListener("pagehide", onLeave);
     window.addEventListener("beforeunload", onLeave);
     return () => {
@@ -343,7 +348,7 @@ export default function Home() {
   async function handleReady(name: string, gender: Gender, lat: number, lng: number) {
     setMyGender(gender);
     setMyLocation({ lat, lng });
-    await join(sessionId, name, gender, lat, lng);
+    secretRef.current = await join(sessionId, name, gender, lat, lng);
     setPhase("live");
   }
 

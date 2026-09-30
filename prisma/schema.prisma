@@ -12,15 +12,29 @@ datasource db {
 }
 
 model Presence {
-  id       String   @id // client-generated session uuid
-  name     String // display name chosen before entering the map
-  gender   String @default("") // "male" | "female"; removed with the session
-  lat      Float // ALREADY privacy-offset coords (raw is never stored)
-  lng      Float
-  busy     Boolean  @default(false) // true while in an active connection
-  lastSeen DateTime
+  id        String   @id // public session uuid — visible to other dots
+  secret    String   @default("") // private; required to poll, signal, or leave
+  name      String // display name chosen before entering the map
+  gender    String   @default("") // "male" | "female"; removed with the session
+  lat       Float // ALREADY privacy-offset coords (raw is never stored)
+  lng       Float
+  busy      Boolean  @default(false) // true while in an active connection
+  partnerId String? // the other session in that connection
+  lastSeen  DateTime
 
   @@index([lastSeen])
+}
+
+model Knock {
+  // A connection request that has not been accepted or declined yet.
+  // Kept separate from Signal so draining a mailbox cannot forge an accept.
+  id        String   @id @default(uuid())
+  toId      String
+  fromId    String
+  createdAt DateTime @default(now())
+
+  @@unique([toId, fromId])
+  @@index([toId])
 }
 
 model Signal {

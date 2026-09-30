@@ -2,37 +2,57 @@ import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { STALE_MS, SIGNAL_TTL_MS } from "@/lib/presence";
 import { isGender, type PollResponse } from "@/lib/types";
+import { isSessionId, readSecret, secretMatches } from "@/lib/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// GET /api/poll?id= — the single endpoint that drives the live map.
-// It (1) heartbeats the caller, (2) reaps stale presence + orphan signals,
-// (3) returns the filtered online peers, and (4) drains this user's mailbox.
+// GET /api/poll?id= — header x-session-secret.
+// Heartbeats the caller, reaps stale rows, returns other dots, and drains
+// this session's mailbox. The secret is required so a public dot id cannot
+// be used to steal signaling or keep someone else online.
 export async function GET(request: NextRequest) {
-  const params = request.nextUrl.searchParams;
-  const id = params.get("id");
+  const id = request.nextUrl.searchParams.get("id");
+  const secret = readSecret(request);
 
-  if (!id) {
-    return Response.json({ error: "missing id" }, { status: 400 });
+  if (!isSessionId(id)) {
+    return Response.json({ error: "invalid id" }, { status: 400 });
+  }
+  if (!secret) {
+    return Response.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  const me = await prisma.presence.findUnique({
+    where: { id },
+    select: { secret: true },
+  });
+  if (!me || !secretMatches(me.secret, secret)) {
+    return Response.json({ error: "unauthorized" }, { status: 401 });
   }
 
   const now = Date.now();
   const staleCutoff = new Date(now - STALE_MS);
   const signalCutoff = new Date(now - SIGNAL_TTL_MS);
 
-  // 1) Heartbeat — refresh lastSeen for the caller.
   await prisma.presence.updateMany({
-    where: { id }, // adding id will update your presence row with the current time.
+    where: { id },
     data: { lastSeen: new Date(now) },
   });
 
-  // 2) Reap stale presence rows and orphaned signals (independent deletes —
-  // no atomicity needed, and avoids transactions over a PgBouncer pooler).
-  await prisma.presence.deleteMany({ where: { lastSeen: { lt: staleCutoff } } });
+  const stale = await prisma.presence.findMany({
+    where: { lastSeen: { lt: staleCutoff } },
+    select: { id: true },
+  });
+  if (stale.length > 0) {
+    const staleIds = stale.map((row) => row.id);
+    await prisma.knock.deleteMany({
+      where: { OR: [{ toId: { in: staleIds } }, { fromId: { in: staleIds } }] },
+    });
+    await prisma.presence.deleteMany({ where: { id: { in: staleIds } } });
+  }
   await prisma.signal.deleteMany({ where: { createdAt: { lt: signalCutoff } } });
+  await prisma.knock.deleteMany({ where: { createdAt: { lt: signalCutoff } } });
 
-  // 3) Online peers, excluding self.
   const peers = await prisma.presence.findMany({
     where: {
       id: { not: id },
@@ -41,8 +61,6 @@ export async function GET(request: NextRequest) {
     select: { id: true, name: true, gender: true, lat: true, lng: true, busy: true },
   });
 
-  // 4) Drain this user's mailbox: read, then delete exactly what we read so a
-  // concurrently-inserted signal is never lost.
   const inbox = await prisma.signal.findMany({
     where: { toId: id },
     orderBy: { createdAt: "asc" },
