@@ -52,7 +52,7 @@ export default function VideoPanel({
           className="absolute inset-0 h-full w-full bg-zinc-950 object-cover"
         />
         {!remoteStream && (
-          <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-zinc-400">
+          <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-white/50">
             Waiting for their video…
           </div>
         )}
@@ -60,29 +60,26 @@ export default function VideoPanel({
           <button
             type="button"
             onClick={playRemote}
-            className="absolute inset-0 flex items-center justify-center bg-black/40 text-sm font-medium text-white"
+            className="absolute inset-0 flex items-center justify-center bg-black/45 text-sm font-medium text-white"
           >
             Tap to play video
           </button>
         )}
-        <div className="absolute right-4 top-4 w-36 overflow-hidden rounded-xl border border-white/20 shadow-lg sm:w-48">
+        <div className="absolute right-4 top-4 w-36 overflow-hidden rounded-2xl border border-white/15 shadow-lg sm:w-48">
           <video
             ref={localRef}
             autoPlay
             playsInline
             muted
-            className="aspect-video w-full bg-zinc-900 object-cover [transform:scaleX(-1)]"
+            className="aspect-video w-full bg-[#0c0e14] object-cover [transform:scaleX(-1)]"
           />
           <span className="absolute bottom-2 left-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-semibold text-white">
             You
           </span>
         </div>
       </div>
-      <div className="flex shrink-0 justify-center border-t border-zinc-800 bg-zinc-950 p-4">
-        <button
-          onClick={onEnd}
-          className="rounded-full bg-red-500 px-8 py-3 font-semibold text-white hover:bg-red-400"
-        >
+      <div className="flex shrink-0 justify-center border-t border-white/10 bg-[#0c0e14] p-4">
+        <button onClick={onEnd} className="ui-btn ui-btn-danger px-8 py-3 text-sm">
           End video
         </button>
       </div>

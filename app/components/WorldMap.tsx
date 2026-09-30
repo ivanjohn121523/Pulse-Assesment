@@ -95,9 +95,8 @@ export default function WorldMap({
         const label = document.createElement("span");
         label.className = "pulse-me-label";
         label.textContent = "You";
-        el.append(label, "📍");
-        // anchor "bottom" → the pin's tip sits on the exact coordinate.
-        meMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "bottom" })
+        el.append(label);
+        meMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "center" })
           .setLngLat([me.lng, me.lat])
           .addTo(map);
       } else {
@@ -164,19 +163,24 @@ export default function WorldMap({
     <div className="absolute inset-0 z-0">
       <div ref={containerRef} className="h-full w-full bg-zinc-900" />
 
+      <div className="map-vignette" aria-hidden="true" />
+
       {!TOKEN && (
         <div className="absolute inset-0 flex items-center justify-center p-6 text-center">
-          <p className="max-w-md rounded-lg bg-zinc-800 p-4 text-sm text-zinc-200">
-            Set{" "}
-            <code className="text-emerald-400">NEXT_PUBLIC_MAPBOX_TOKEN</code> in{" "}
+          <p className="ui-card max-w-md rounded-2xl p-4 text-sm">
+            Set <code className="text-[var(--accent)]">NEXT_PUBLIC_MAPBOX_TOKEN</code> in{" "}
             <code>.env</code> to load the map.
           </p>
         </div>
       )}
 
-      {/* Online count */}
-      <div className="absolute bottom-4 left-4 rounded-full bg-zinc-900/80 px-3 py-1.5 text-xs text-zinc-300 backdrop-blur">
-        {peers.length} online
+      <div className="ui-toast absolute left-1/2 top-4 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full px-3.5 py-2 text-xs">
+        <span className="font-semibold tracking-tight">Pulse</span>
+        <span className="text-white/25">·</span>
+        <span className="flex items-center gap-1.5 text-white/70">
+          <span className="pulse-live-dot" />
+          {peers.length} online
+        </span>
       </div>
     </div>
   );

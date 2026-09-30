@@ -41,11 +41,14 @@ export default function ChatPanel({
   }
 
   return (
-    <div className="absolute inset-y-0 right-0 z-20 flex w-full max-w-md flex-col border-l border-zinc-800 bg-zinc-950 text-zinc-100 shadow-2xl">
-      <header className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
+    <div className="absolute inset-y-0 right-0 z-20 flex w-full max-w-md flex-col border-l border-white/10 bg-[#0c0e14] text-[var(--foreground)] shadow-[0_0_80px_rgba(0,0,0,0.45)]">
+      <header className="flex items-center justify-between border-b border-white/10 px-4 py-3.5">
         <div>
-          <p className="font-semibold">{peerName}</p>
-          <p className="text-xs text-zinc-500">
+          <p className="font-semibold tracking-tight">{peerName}</p>
+          <p className="mt-0.5 flex items-center gap-1.5 text-xs text-white/45">
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${connected ? "bg-[var(--accent)]" : "bg-white/30"}`}
+            />
             {connected ? "Connected" : "Connecting…"}
           </p>
         </div>
@@ -53,13 +56,13 @@ export default function ChatPanel({
           <button
             onClick={onStartVideo}
             disabled={!connected || videoBusy}
-            className="rounded-full border border-zinc-700 px-3 py-1.5 text-sm hover:border-zinc-500 disabled:opacity-40"
+            className="ui-btn ui-btn-ghost px-3 py-1.5 text-sm"
           >
             Video
           </button>
           <button
             onClick={onEnd}
-            className="rounded-full bg-red-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-400"
+            className="ui-btn ui-btn-danger px-3 py-1.5 text-sm"
           >
             End
           </button>
@@ -68,7 +71,7 @@ export default function ChatPanel({
 
       <div className="flex-1 space-y-2 overflow-y-auto p-4">
         {messages.length === 0 && (
-          <p className="mt-8 text-center text-sm text-zinc-500">
+          <p className="mt-10 text-center text-sm leading-relaxed text-white/40">
             Say hello. Messages are peer-to-peer and never stored.
           </p>
         )}
@@ -78,10 +81,10 @@ export default function ChatPanel({
             className={`flex ${m.mine ? "justify-end" : "justify-start"}`}
           >
             <span
-              className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
+              className={`max-w-[80%] px-3.5 py-2 text-sm leading-relaxed ${
                 m.mine
-                  ? "bg-emerald-400 text-zinc-950"
-                  : "bg-zinc-800 text-zinc-100"
+                  ? "rounded-2xl rounded-br-md bg-[var(--accent)] text-[var(--accent-ink)]"
+                  : "rounded-2xl rounded-bl-md bg-white/8 text-[var(--foreground)]"
               }`}
             >
               {m.text}
@@ -91,18 +94,18 @@ export default function ChatPanel({
         <div ref={endRef} />
       </div>
 
-      <form onSubmit={submit} className="flex gap-2 border-t border-zinc-800 p-3">
+      <form onSubmit={submit} className="flex gap-2 border-t border-white/10 p-3">
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder={connected ? "Type a message…" : "Connecting…"}
           disabled={!connected}
-          className="flex-1 rounded-full bg-zinc-900 px-4 py-2 text-sm outline-none placeholder:text-zinc-600 focus:ring-1 focus:ring-emerald-400 disabled:opacity-50"
+          className="ui-field flex-1 px-4 py-2.5 text-sm"
         />
         <button
           type="submit"
           disabled={!connected || !draft.trim()}
-          className="rounded-full bg-emerald-400 px-4 py-2 text-sm font-semibold text-zinc-950 disabled:opacity-40"
+          className="ui-btn ui-btn-primary px-4 py-2 text-sm"
         >
           Send
         </button>

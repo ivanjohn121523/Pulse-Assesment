@@ -12,24 +12,25 @@ export default function RequestList({
   if (requests.length === 0) return null;
 
   return (
-    <aside className="absolute left-4 top-4 z-30 w-64 rounded-2xl border border-zinc-800 bg-zinc-950/95 p-3 text-zinc-100 shadow-xl backdrop-blur">
-      <p className="px-1 text-xs font-semibold uppercase tracking-wide text-zinc-400">
-        Requests
-      </p>
-      <ul className="mt-2 flex max-h-80 flex-col gap-2 overflow-y-auto">
+    <aside className="ui-card absolute left-4 top-4 z-30 w-64 rounded-3xl p-3">
+      <p className="ui-kicker px-1">Requests</p>
+      <ul className="mt-3 flex max-h-80 flex-col gap-2 overflow-y-auto">
         {requests.map((request) => (
-          <li key={request.peerId} className="rounded-xl bg-zinc-900 px-3 py-2">
-            <p className="truncate text-sm font-medium">{request.name}</p>
-            <div className="mt-2 flex gap-2">
+          <li
+            key={request.peerId}
+            className="rounded-2xl border border-white/8 bg-white/4 px-3 py-2.5"
+          >
+            <p className="truncate text-sm font-medium tracking-tight">{request.name}</p>
+            <div className="mt-2.5 flex gap-2">
               <button
                 onClick={() => onDecline(request.peerId)}
-                className="flex-1 rounded-full border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:border-zinc-500"
+                className="ui-btn ui-btn-ghost flex-1 py-1.5 text-xs"
               >
                 Decline
               </button>
               <button
                 onClick={() => onAccept(request.peerId)}
-                className="flex-1 rounded-full bg-emerald-400 px-3 py-1.5 text-xs font-semibold text-zinc-950 hover:bg-emerald-300"
+                className="ui-btn ui-btn-primary flex-1 py-1.5 text-xs"
               >
                 Accept
               </button>

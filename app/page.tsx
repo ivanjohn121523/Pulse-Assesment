@@ -365,18 +365,15 @@ export default function Home() {
       />
 
       {notice && (
-        <div className="absolute left-1/2 top-20 z-30 -translate-x-1/2 rounded-full bg-zinc-800/90 px-4 py-2 text-sm text-zinc-100 shadow-lg backdrop-blur">
+        <div className="ui-toast absolute left-1/2 top-16 z-30 -translate-x-1/2 rounded-full px-4 py-2 text-sm">
           {notice}
         </div>
       )}
 
       {conn.kind === "requesting" && (
-        <div className="absolute left-1/2 top-20 z-30 flex -translate-x-1/2 items-center gap-3 rounded-full bg-zinc-800/90 px-4 py-2 text-sm text-zinc-100 shadow-lg backdrop-blur">
+        <div className="ui-toast absolute left-1/2 top-16 z-30 flex -translate-x-1/2 items-center gap-3 rounded-full px-4 py-2 text-sm">
           <span>Requesting connection…</span>
-          <button
-            onClick={cancelRequest}
-            className="rounded-full bg-zinc-700 px-3 py-1 text-xs hover:bg-zinc-600"
-          >
+          <button onClick={cancelRequest} className="ui-btn ui-btn-ghost px-3 py-1 text-xs">
             Cancel
           </button>
         </div>
@@ -423,7 +420,7 @@ export default function Home() {
       )}
 
       {video === "requesting" && (
-        <div className="absolute bottom-24 left-1/2 z-30 -translate-x-1/2 rounded-full bg-zinc-800/90 px-4 py-2 text-sm text-zinc-100 shadow-lg backdrop-blur md:left-[calc(50%-14rem)]">
+        <div className="ui-toast absolute bottom-24 left-1/2 z-30 -translate-x-1/2 rounded-full px-4 py-2 text-sm md:left-[calc(50%-14rem)]">
           Waiting for stranger to accept video…
         </div>
       )}

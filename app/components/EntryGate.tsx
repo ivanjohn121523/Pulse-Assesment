@@ -54,72 +54,77 @@ export default function EntryGate({
   }
 
   return (
-    <div className="relative flex min-h-full flex-1 flex-col items-center justify-center gap-8 overflow-hidden p-6 text-zinc-100">
+    <div className="relative flex min-h-full flex-1 flex-col items-center justify-center overflow-hidden px-6 py-16 text-[var(--foreground)]">
       <div className="chat-live-bg" aria-hidden="true" />
       <div className="landing-scrim" aria-hidden="true" />
-      <div className="relative z-10 text-center">
-        <h1 className="text-4xl font-bold tracking-tight">Pulse</h1>
-        <p className="mt-2 max-w-sm text-zinc-200">
+      <div className="relative z-10 w-full max-w-sm text-center">
+        <p className="ui-kicker">Anonymous · Live</p>
+        <h1 className="mt-4 text-6xl font-semibold tracking-[-0.05em]">Pulse</h1>
+        <p className="mx-auto mt-3 max-w-xs text-sm leading-relaxed text-white/70">
           A living globe of anonymous strangers. Drop onto the map and connect.
+        </p>
+
+        <form
+          onSubmit={enter}
+          className="ui-card mt-8 flex flex-col gap-3 rounded-3xl p-4 text-left"
+        >
+          <label className="px-1 text-xs font-medium text-white/55" htmlFor="username">
+            What should people call you?
+          </label>
+          <input
+            id="username"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={NAME_MAX}
+            placeholder="Username"
+            autoComplete="nickname"
+            disabled={status === "locating"}
+            className="ui-field px-4 py-3 text-center text-base"
+          />
+          <button
+            type="submit"
+            disabled={status === "locating" || !displayName}
+            className="ui-btn ui-btn-primary w-full py-3 text-sm"
+          >
+            {status === "locating" ? "Locating…" : "Enter Pulse"}
+          </button>
+        </form>
+
+        {status === "error" && (
+          <p className="mt-4 text-sm text-[#ffb4ab]">{error}</p>
+        )}
+
+        <p className="mt-5 text-xs leading-relaxed text-white/45">
+          No sign-up. Your dot is placed 1–3&nbsp;km from your real location.
+          Your name is removed when you close the tab.
         </p>
       </div>
 
-      <form
-        onSubmit={enter}
-        className="relative z-10 flex w-full max-w-xs flex-col items-center gap-4"
-      >
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          maxLength={NAME_MAX}
-          placeholder="Username"
-          autoComplete="nickname"
-          disabled={status === "locating"}
-          className="w-full rounded-full border border-white/20 bg-zinc-950/60 px-5 py-3 text-center text-zinc-100 outline-none backdrop-blur-sm placeholder:text-zinc-400 focus:border-emerald-400 disabled:opacity-60"
-        />
-        <button
-          type="submit"
-          disabled={status === "locating" || !displayName}
-          className="rounded-full bg-emerald-400 px-8 py-3 font-semibold text-zinc-950 transition hover:bg-emerald-300 disabled:opacity-60"
-        >
-          {status === "locating" ? "Locating…" : "Enter Pulse"}
-        </button>
-      </form>
-
-      {status === "error" && (
-        <p className="relative z-10 max-w-sm text-center text-sm text-red-300">{error}</p>
-      )}
-
-      <p className="relative z-10 max-w-sm text-center text-xs text-zinc-300">
-        No sign-up. Your dot is placed 1–3&nbsp;km from your real location.
-        Your name is removed when you close the tab.
-      </p>
-
       {ageGate !== "idle" && (
-        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/70 p-6">
-          <div className="w-full max-w-xs rounded-2xl bg-zinc-900 p-6 text-center text-zinc-100 shadow-xl">
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/75 p-6">
+          <div className="ui-card w-full max-w-xs rounded-3xl p-6 text-center">
             {ageGate === "ask" ? (
               <>
-                <h2 className="text-lg font-semibold">Are you 18 or older?</h2>
+                <h2 className="text-lg font-semibold tracking-tight">Are you 18 or older?</h2>
                 <div className="mt-5 flex gap-3">
                   <button
                     type="button"
                     onClick={() => setAgeGate("no")}
-                    className="flex-1 rounded-full border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 hover:border-zinc-500"
+                    className="ui-btn ui-btn-ghost flex-1 py-2.5 text-sm"
                   >
                     No
                   </button>
                   <button
                     type="button"
                     onClick={confirmAge}
-                    className="flex-1 rounded-full bg-emerald-400 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-emerald-300"
+                    className="ui-btn ui-btn-primary flex-1 py-2.5 text-sm"
                   >
                     Yes
                   </button>
                 </div>
               </>
             ) : (
-              <h2 className="text-lg font-semibold">Not allowed</h2>
+              <h2 className="text-lg font-semibold tracking-tight">Not allowed</h2>
             )}
           </div>
         </div>
