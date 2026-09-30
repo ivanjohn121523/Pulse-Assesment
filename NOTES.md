@@ -14,3 +14,6 @@ FIX:
 2. Replace the "msg" to "chat"
 3. adding the `end` connection to condition for set back busy to false.
 4. on line 110-111 lib/webrtc.ts call `setRemoteDescription` first, then `flushPendingCandidates`, so the queued ICE candidates are added after the offer or answer is set.
+
+FEATURE:
+1. Added a popup after Enter Pulse asking if you are 18 or older, to protect minors. Yes continues. No shows Not allowed.

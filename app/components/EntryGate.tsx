@@ -10,22 +10,32 @@ export default function EntryGate({
   onReady: (name: string, lat: number, lng: number) => void;
 }) {
   const [name, setName] = useState("");
+  const [ageGate, setAgeGate] = useState<"idle" | "ask" | "no">("idle");
   const [status, setStatus] = useState<"idle" | "locating" | "error">("idle");
   const [error, setError] = useState<string>("");
   const displayName = name.trim();
 
   function enter(e: React.FormEvent) {
     e.preventDefault();
+    if (ageGate === "no" || status === "locating") return;
     if (!displayName) {
       setStatus("error");
       setError("Enter a username to continue.");
       return;
     }
+    setStatus("idle");
+    setError("");
+    setAgeGate("ask");
+  }
+
+  function confirmAge() {
     if (!("geolocation" in navigator)) {
+      setAgeGate("idle");
       setStatus("error");
       setError("Your browser doesn't support location access.");
       return;
     }
+    setAgeGate("idle");
     setStatus("locating");
     navigator.geolocation.getCurrentPosition(
       (pos) => onReady(displayName, pos.coords.latitude, pos.coords.longitude),
@@ -84,6 +94,36 @@ export default function EntryGate({
         No sign-up. Your dot is placed 1–3&nbsp;km from your real location.
         Your name is removed when you close the tab.
       </p>
+
+      {ageGate !== "idle" && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/70 p-6">
+          <div className="w-full max-w-xs rounded-2xl bg-zinc-900 p-6 text-center text-zinc-100 shadow-xl">
+            {ageGate === "ask" ? (
+              <>
+                <h2 className="text-lg font-semibold">Are you 18 or older?</h2>
+                <div className="mt-5 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setAgeGate("no")}
+                    className="flex-1 rounded-full border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 hover:border-zinc-500"
+                  >
+                    No
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmAge}
+                    className="flex-1 rounded-full bg-emerald-400 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-emerald-300"
+                  >
+                    Yes
+                  </button>
+                </div>
+              </>
+            ) : (
+              <h2 className="text-lg font-semibold">Not allowed</h2>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
