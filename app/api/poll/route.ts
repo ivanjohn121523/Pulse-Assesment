@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { STALE_MS, SIGNAL_TTL_MS } from "@/lib/presence";
-import type { PollResponse } from "@/lib/types";
+import { isGender, type PollResponse } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       id: { not: id },
       lastSeen: { gte: staleCutoff },
     },
-    select: { id: true, name: true, lat: true, lng: true, busy: true },
+    select: { id: true, name: true, gender: true, lat: true, lng: true, busy: true },
   });
 
   // 4) Drain this user's mailbox: read, then delete exactly what we read so a
@@ -57,6 +57,7 @@ export async function GET(request: NextRequest) {
     peers: peers.map((p) => ({
       id: p.id,
       name: p.name,
+      gender: isGender(p.gender) ? p.gender : null,
       lat: p.lat,
       lng: p.lng,
       busy: p.busy,

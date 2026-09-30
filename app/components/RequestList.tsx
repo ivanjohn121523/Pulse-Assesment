@@ -1,11 +1,14 @@
 "use client";
 
+import type { Gender } from "@/lib/types";
+import GenderBadge from "./GenderBadge";
+
 export default function RequestList({
   requests,
   onAccept,
   onDecline,
 }: {
-  requests: { peerId: string; name: string }[];
+  requests: { peerId: string; name: string; gender: Gender | null }[];
   onAccept: (peerId: string) => void;
   onDecline: (peerId: string) => void;
 }) {
@@ -20,7 +23,10 @@ export default function RequestList({
             key={request.peerId}
             className="rounded-2xl border border-white/8 bg-white/4 px-3 py-2.5"
           >
-            <p className="truncate text-sm font-medium tracking-tight">{request.name}</p>
+            <p className="flex items-center gap-2 truncate text-sm font-medium tracking-tight">
+              {request.gender && <GenderBadge gender={request.gender} />}
+              <span className="truncate">{request.name}</span>
+            </p>
             <div className="mt-2.5 flex gap-2">
               <button
                 onClick={() => onDecline(request.peerId)}

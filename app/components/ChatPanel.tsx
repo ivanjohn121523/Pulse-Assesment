@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { Gender } from "@/lib/types";
+import GenderBadge from "./GenderBadge";
 
 export interface ChatMessage {
   id: number;
@@ -10,6 +12,7 @@ export interface ChatMessage {
 
 export default function ChatPanel({
   peerName,
+  peerGender,
   messages,
   connected,
   videoBusy,
@@ -18,6 +21,7 @@ export default function ChatPanel({
   onEnd,
 }: {
   peerName: string;
+  peerGender: Gender | null;
   messages: ChatMessage[];
   connected: boolean;
   videoBusy: boolean;
@@ -44,7 +48,10 @@ export default function ChatPanel({
     <div className="absolute inset-y-0 right-0 z-20 flex w-full max-w-md flex-col border-l border-white/10 bg-[#0c0e14] text-[var(--foreground)] shadow-[0_0_80px_rgba(0,0,0,0.45)]">
       <header className="flex items-center justify-between border-b border-white/10 px-4 py-3.5">
         <div>
-          <p className="font-semibold tracking-tight">{peerName}</p>
+          <p className="flex items-center gap-2 font-semibold tracking-tight">
+            {peerGender && <GenderBadge gender={peerGender} />}
+            {peerName}
+          </p>
           <p className="mt-0.5 flex items-center gap-1.5 text-xs text-white/45">
             <span
               className={`h-1.5 w-1.5 rounded-full ${connected ? "bg-[var(--accent)]" : "bg-white/30"}`}

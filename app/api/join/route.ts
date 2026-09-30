@@ -1,16 +1,17 @@
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { applyPrivacyOffset, isValidLatLng } from "@/lib/geo";
+import { isGender } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const NAME_MAX = 20;
 
-// POST /api/join — body { id, name, lat, lng } (raw coords).
+// POST /api/join — body { id, name, gender, lat, lng } (raw coords).
 // Applies a 1–3 km privacy offset and upserts the presence row. Raw
-// coordinates are never stored. The name lives on that row and is removed
-// with it when the session ends.
+// coordinates are never stored. The name and gender live on that row and
+// are removed with it when the session ends.
 export async function POST(request: NextRequest) {
   let body: unknown;
   try {
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "invalid body" }, { status: 400 });
   }
 
-  const { id, name, lat, lng } = (body ?? {}) as Record<string, unknown>;
+  const { id, name, gender, lat, lng } = (body ?? {}) as Record<string, unknown>;
 
   if (typeof id !== "string" || id.length < 8 || id.length > 64) {
     return Response.json({ error: "invalid id" }, { status: 400 });
@@ -30,6 +31,9 @@ export async function POST(request: NextRequest) {
   const displayName = name.trim();
   if (displayName.length < 1 || displayName.length > NAME_MAX) {
     return Response.json({ error: "invalid name" }, { status: 400 });
+  }
+  if (!isGender(gender)) {
+    return Response.json({ error: "invalid gender" }, { status: 400 });
   }
   if (!isValidLatLng(lat, lng)) {
     return Response.json({ error: "invalid coordinates" }, { status: 400 });
@@ -42,6 +46,7 @@ export async function POST(request: NextRequest) {
     create: {
       id,
       name: displayName,
+      gender,
       lat: offset.lat,
       lng: offset.lng,
       busy: false,
@@ -49,6 +54,7 @@ export async function POST(request: NextRequest) {
     },
     update: {
       name: displayName,
+      gender,
       lat: offset.lat,
       lng: offset.lng,
       lastSeen: new Date(),

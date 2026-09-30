@@ -133,6 +133,9 @@ body {
   left: 50%;
   transform: translateX(-50%);
   margin-bottom: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-family: var(--font-geist-sans), Geist, sans-serif;
   font-size: 11px;
   font-weight: 600;
@@ -145,6 +148,43 @@ body {
   border-radius: 9999px;
   white-space: nowrap;
   pointer-events: none;
+}
+
+.gender-badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 1.5px solid currentColor;
+  box-sizing: border-box;
+}
+
+.gender-badge svg {
+  width: 11px;
+  height: 11px;
+}
+
+.gender-badge.male {
+  color: #8ec5ff;
+  background: rgba(80, 150, 255, 0.18);
+}
+
+.gender-badge.female {
+  color: #ff9ec4;
+  background: rgba(255, 120, 170, 0.18);
+}
+
+.gender-badge-lg {
+  width: 42px;
+  height: 42px;
+}
+
+.gender-badge-lg svg {
+  width: 24px;
+  height: 24px;
 }
 
 .pulse-dot:hover {

@@ -10,7 +10,7 @@ import VideoPanel from "./components/VideoPanel";
 import { join, leave, poll, sendSignal } from "@/lib/api";
 import { PeerSession, type DescType, type PeerControl } from "@/lib/webrtc";
 import { POLL_INTERVAL_MS } from "@/lib/presence";
-import { type PeerDot, type SignalMsg } from "@/lib/types";
+import { type Gender, type PeerDot, type SignalMsg } from "@/lib/types";
 
 type Conn =
   | { kind: "idle" }
@@ -35,6 +35,7 @@ export default function Home() {
   const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(
     null,
   );
+  const [myGender, setMyGender] = useState<Gender | null>(null);
 
   const [dotPromptId, setDotPromptId] = useState<string | null>(null);
   const [incoming, _setIncoming] = useState<IncomingRequest[]>([]);
@@ -339,14 +340,19 @@ export default function Home() {
     };
   }, [sessionId, phase]);
 
-  async function handleReady(name: string, lat: number, lng: number) {
+  async function handleReady(name: string, gender: Gender, lat: number, lng: number) {
+    setMyGender(gender);
     setMyLocation({ lat, lng });
-    await join(sessionId, name, lat, lng);
+    await join(sessionId, name, gender, lat, lng);
     setPhase("live");
   }
 
   function nameFor(id: string) {
     return peers.find((p) => p.id === id)?.name || "Stranger";
+  }
+
+  function genderFor(id: string) {
+    return peers.find((p) => p.id === id)?.gender ?? null;
   }
 
   if (phase === "gate") {
@@ -360,6 +366,7 @@ export default function Home() {
       <WorldMap
         peers={peers}
         me={myLocation}
+        meGender={myGender}
         onPeerClick={requestConnection}
         canConnect={conn.kind === "idle"}
       />
@@ -397,6 +404,7 @@ export default function Home() {
         requests={incoming.map((request) => ({
           peerId: request.peerId,
           name: nameFor(request.peerId),
+          gender: genderFor(request.peerId),
         }))}
         onAccept={(peerId) => {
           void acceptIncoming(peerId);
@@ -407,6 +415,7 @@ export default function Home() {
       {inChat && (
         <ChatPanel
           peerName={nameFor(conn.peerId)}
+          peerGender={genderFor(conn.peerId)}
           messages={messages}
           connected={conn.kind === "connected"}
           videoBusy={video !== "none"}

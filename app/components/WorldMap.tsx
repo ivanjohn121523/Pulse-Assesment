@@ -3,9 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import "mapbox-gl/dist/mapbox-gl.css";
 import type { Map as MapboxMap, Marker } from "mapbox-gl";
-import type { PeerDot } from "@/lib/types";
+import type { Gender, PeerDot } from "@/lib/types";
+import { createGenderBadge } from "./GenderBadge";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "pk.eyJ1IjoicHVsc2UtbWFwIiwiYSI6ImNrMDBkZW1vMDAwMDAwMDAifQ.AAAAAAAAAAAAAAAAAAAAAA";
+
+function fillLabel(label: HTMLElement, text: string, gender: Gender | null) {
+  label.replaceChildren();
+  if (gender) label.append(createGenderBadge(gender));
+  label.append(document.createTextNode(text));
+}
 
 function dotColor(id: string): string {
   let hash = 0;
@@ -18,11 +25,13 @@ function dotColor(id: string): string {
 export default function WorldMap({
   peers,
   me,
+  meGender,
   onPeerClick,
   canConnect,
 }: {
   peers: PeerDot[];
   me: { lat: number; lng: number } | null;
+  meGender: Gender | null;
   onPeerClick: (id: string) => void;
   canConnect: boolean;
 }) {
@@ -94,20 +103,22 @@ export default function WorldMap({
         el.title = "You are here";
         const label = document.createElement("span");
         label.className = "pulse-me-label";
-        label.textContent = "You";
+        fillLabel(label, "You", meGender);
         el.append(label);
         meMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "center" })
           .setLngLat([me.lng, me.lat])
           .addTo(map);
       } else {
         meMarkerRef.current.setLngLat([me.lng, me.lat]);
+        const label = meMarkerRef.current.getElement().querySelector(".pulse-me-label");
+        if (label instanceof HTMLElement) fillLabel(label, "You", meGender);
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [me, ready]);
+  }, [me, meGender, ready]);
 
   // Reconcile markers whenever the peer list changes (or the map becomes ready).
   useEffect(() => {
@@ -131,7 +142,7 @@ export default function WorldMap({
           el.title = `${peer.name} — tap to connect`;
           const label = document.createElement("span");
           label.className = "pulse-dot-label";
-          label.textContent = peer.name;
+          fillLabel(label, peer.name, peer.gender);
           el.appendChild(label);
           el.addEventListener("click", (e) => {
             e.stopPropagation();

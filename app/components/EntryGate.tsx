@@ -1,15 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import type { Gender } from "@/lib/types";
+import GenderBadge from "./GenderBadge";
 
 const NAME_MAX = 20;
 
 export default function EntryGate({
   onReady,
 }: {
-  onReady: (name: string, lat: number, lng: number) => void;
+  onReady: (name: string, gender: Gender, lat: number, lng: number) => void;
 }) {
   const [name, setName] = useState("");
+  const [gender, setGender] = useState<Gender | null>(null);
   const [ageGate, setAgeGate] = useState<"idle" | "ask" | "no">("idle");
   const [status, setStatus] = useState<"idle" | "locating" | "error">("idle");
   const [error, setError] = useState<string>("");
@@ -21,6 +24,11 @@ export default function EntryGate({
     if (!displayName) {
       setStatus("error");
       setError("Enter a username to continue.");
+      return;
+    }
+    if (!gender) {
+      setStatus("error");
+      setError("Choose male or female to continue.");
       return;
     }
     setStatus("idle");
@@ -38,7 +46,10 @@ export default function EntryGate({
     setAgeGate("idle");
     setStatus("locating");
     navigator.geolocation.getCurrentPosition(
-      (pos) => onReady(displayName, pos.coords.latitude, pos.coords.longitude),
+      (pos) => {
+        if (!gender) return;
+        onReady(displayName, gender, pos.coords.latitude, pos.coords.longitude);
+      },
       (err) => {
         setStatus("error");
         setError(
@@ -54,7 +65,7 @@ export default function EntryGate({
   }
 
   return (
-    <div className="relative flex min-h-full flex-1 flex-col items-center justify-center overflow-hidden px-6 py-16 text-[var(--foreground)]">
+    <div className="relative flex min-h-full flex-1 flex-col items-center justify-center overflow-hidden px-6 py-8 text-[var(--foreground)]">
       <div className="chat-live-bg" aria-hidden="true" />
       <div className="landing-scrim" aria-hidden="true" />
       <div className="relative z-10 w-full max-w-sm text-center">
@@ -81,9 +92,28 @@ export default function EntryGate({
             disabled={status === "locating"}
             className="ui-field px-4 py-3 text-center text-base"
           />
+          <div className="grid grid-cols-2 gap-2" role="group" aria-label="Gender">
+            {(["male", "female"] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                aria-pressed={gender === option}
+                disabled={status === "locating"}
+                onClick={() => setGender(option)}
+                className={`flex flex-col items-center gap-2 rounded-2xl border py-3 text-xs font-medium capitalize ${
+                  gender === option
+                    ? "border-[var(--accent)] bg-white/6"
+                    : "border-white/10 text-white/70 hover:border-white/25"
+                }`}
+              >
+                <GenderBadge gender={option} large />
+                {option}
+              </button>
+            ))}
+          </div>
           <button
             type="submit"
-            disabled={status === "locating" || !displayName}
+            disabled={status === "locating" || !displayName || !gender}
             className="ui-btn ui-btn-primary w-full py-3 text-sm"
           >
             {status === "locating" ? "Locating…" : "Enter Pulse"}

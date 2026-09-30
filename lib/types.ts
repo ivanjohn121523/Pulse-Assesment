@@ -10,9 +10,16 @@ export type SignalType =
   | "ice" // WebRTC ICE candidate
   | "end"; // hang up / leave the connection
 
+export type Gender = "male" | "female";
+
+export function isGender(value: unknown): value is Gender {
+  return value === "male" || value === "female";
+}
+
 export interface PeerDot {
   id: string;
   name: string;
+  gender: Gender | null;
   lat: number;
   lng: number;
   busy: boolean;
