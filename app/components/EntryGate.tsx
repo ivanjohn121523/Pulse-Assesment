@@ -44,15 +44,20 @@ export default function EntryGate({
   }
 
   return (
-    <div className="flex min-h-full flex-1 flex-col items-center justify-center gap-8 bg-zinc-950 p-6 text-zinc-100">
-      <div className="text-center">
+    <div className="relative flex min-h-full flex-1 flex-col items-center justify-center gap-8 overflow-hidden p-6 text-zinc-100">
+      <div className="chat-live-bg" aria-hidden="true" />
+      <div className="landing-scrim" aria-hidden="true" />
+      <div className="relative z-10 text-center">
         <h1 className="text-4xl font-bold tracking-tight">Pulse</h1>
-        <p className="mt-2 max-w-sm text-zinc-400">
+        <p className="mt-2 max-w-sm text-zinc-200">
           A living globe of anonymous strangers. Drop onto the map and connect.
         </p>
       </div>
 
-      <form onSubmit={enter} className="flex w-full max-w-xs flex-col items-center gap-4">
+      <form
+        onSubmit={enter}
+        className="relative z-10 flex w-full max-w-xs flex-col items-center gap-4"
+      >
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -60,7 +65,7 @@ export default function EntryGate({
           placeholder="Username"
           autoComplete="nickname"
           disabled={status === "locating"}
-          className="w-full rounded-full border border-zinc-700 bg-zinc-900 px-5 py-3 text-center text-zinc-100 outline-none placeholder:text-zinc-500 focus:border-emerald-400 disabled:opacity-60"
+          className="w-full rounded-full border border-white/20 bg-zinc-950/60 px-5 py-3 text-center text-zinc-100 outline-none backdrop-blur-sm placeholder:text-zinc-400 focus:border-emerald-400 disabled:opacity-60"
         />
         <button
           type="submit"
@@ -72,10 +77,10 @@ export default function EntryGate({
       </form>
 
       {status === "error" && (
-        <p className="max-w-sm text-center text-sm text-red-400">{error}</p>
+        <p className="relative z-10 max-w-sm text-center text-sm text-red-300">{error}</p>
       )}
 
-      <p className="max-w-sm text-center text-xs text-zinc-500">
+      <p className="relative z-10 max-w-sm text-center text-xs text-zinc-300">
         No sign-up. Your dot is placed 1–3&nbsp;km from your real location.
         Your name is removed when you close the tab.
       </p>
