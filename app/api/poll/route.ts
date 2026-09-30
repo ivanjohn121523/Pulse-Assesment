@@ -2,6 +2,8 @@ import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { STALE_MS, SIGNAL_TTL_MS } from "@/lib/presence";
 import { isGender, type PollResponse } from "@/lib/types";
+import { ipHashFrom } from "@/lib/ip";
+import { dropSession, isIpBlocked } from "@/lib/moderation";
 import { isSessionId, readSecret, secretMatches } from "@/lib/session";
 
 export const runtime = "nodejs";
@@ -14,6 +16,11 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const id = request.nextUrl.searchParams.get("id");
   const secret = readSecret(request);
+
+  if (await isIpBlocked(ipHashFrom(request))) {
+    if (isSessionId(id)) await dropSession(id);
+    return Response.json({ error: "blocked" }, { status: 403 });
+  }
 
   if (!isSessionId(id)) {
     return Response.json({ error: "invalid id" }, { status: 400 });

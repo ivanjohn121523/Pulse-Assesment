@@ -18,6 +18,7 @@ export default function ChatPanel({
   videoBusy,
   onSend,
   onStartVideo,
+  onReport,
   onEnd,
 }: {
   peerName: string;
@@ -27,9 +28,11 @@ export default function ChatPanel({
   videoBusy: boolean;
   onSend: (text: string) => void;
   onStartVideo: () => void;
+  onReport: () => Promise<void>;
   onEnd: () => void;
 }) {
   const [draft, setDraft] = useState("");
+  const [confirmReport, setConfirmReport] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -61,6 +64,13 @@ export default function ChatPanel({
         </div>
         <div className="flex gap-2">
           <button
+            onClick={() => setConfirmReport(true)}
+            disabled={!connected || confirmReport}
+            className="ui-btn ui-btn-ghost px-3 py-1.5 text-sm"
+          >
+            Report
+          </button>
+          <button
             onClick={onStartVideo}
             disabled={!connected || videoBusy}
             className="ui-btn ui-btn-ghost px-3 py-1.5 text-sm"
@@ -75,6 +85,30 @@ export default function ChatPanel({
           </button>
         </div>
       </header>
+
+      {confirmReport && (
+        <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-2.5 text-sm">
+          <p>Report {peerName} for being inappropriate?</p>
+          <div className="flex shrink-0 gap-2">
+            <button
+              onClick={() => setConfirmReport(false)}
+              className="ui-btn ui-btn-ghost px-3 py-1.5 text-xs"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                void onReport()
+                  .then(() => setConfirmReport(false))
+                  .catch(() => setConfirmReport(false));
+              }}
+              className="ui-btn ui-btn-danger px-3 py-1.5 text-xs"
+            >
+              Report
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 space-y-2 overflow-y-auto p-4">
         {messages.length === 0 && (

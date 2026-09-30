@@ -2,6 +2,8 @@ import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { applyPrivacyOffset, isValidLatLng } from "@/lib/geo";
 import { isGender } from "@/lib/types";
+import { ipHashFrom } from "@/lib/ip";
+import { isIpBlocked } from "@/lib/moderation";
 import { isSessionId, newSecret, sanitizeName } from "@/lib/session";
 
 export const runtime = "nodejs";
@@ -38,6 +40,11 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "invalid coordinates" }, { status: 400 });
   }
 
+  const ipHash = ipHashFrom(request);
+  if (await isIpBlocked(ipHash)) {
+    return Response.json({ error: "blocked" }, { status: 403 });
+  }
+
   const existing = await prisma.presence.findUnique({
     where: { id },
     select: { id: true },
@@ -58,6 +65,7 @@ export async function POST(request: NextRequest) {
       lat: offset.lat,
       lng: offset.lng,
       busy: false,
+      ipHash,
       lastSeen: new Date(),
     },
   });

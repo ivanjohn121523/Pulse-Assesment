@@ -9,7 +9,7 @@ const NAME_MAX = 20;
 export default function EntryGate({
   onReady,
 }: {
-  onReady: (name: string, gender: Gender, lat: number, lng: number) => void;
+  onReady: (name: string, gender: Gender, lat: number, lng: number) => Promise<void>;
 }) {
   const [name, setName] = useState("");
   const [gender, setGender] = useState<Gender | null>(null);
@@ -48,7 +48,12 @@ export default function EntryGate({
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         if (!gender) return;
-        onReady(displayName, gender, pos.coords.latitude, pos.coords.longitude);
+        void onReady(displayName, gender, pos.coords.latitude, pos.coords.longitude).catch(
+          () => {
+            setStatus("error");
+            setError("Couldn't enter. Please try again.");
+          },
+        );
       },
       (err) => {
         setStatus("error");

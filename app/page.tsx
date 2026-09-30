@@ -7,7 +7,7 @@ import ConnectionPrompt from "./components/ConnectionPrompt";
 import RequestList from "./components/RequestList";
 import ChatPanel, { type ChatMessage } from "./components/ChatPanel";
 import VideoPanel from "./components/VideoPanel";
-import { join, leave, poll, sendSignal } from "@/lib/api";
+import { join, leave, poll, report, sendSignal } from "@/lib/api";
 import { PeerSession, type DescType, type PeerControl } from "@/lib/webrtc";
 import { POLL_INTERVAL_MS } from "@/lib/presence";
 import { type Gender, type PeerDot, type SignalMsg } from "@/lib/types";
@@ -26,6 +26,7 @@ const REQUEST_TIMEOUT_MS = 30_000;
 
 export default function Home() {
   const [phase, setPhase] = useState<"gate" | "live">("gate");
+  const [banned, setBanned] = useState(false);
   const [sessionId] = useState(() => crypto.randomUUID());
   const [peers, setPeers] = useState<PeerDot[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -166,7 +167,7 @@ export default function Home() {
         connRef.current.kind === "requesting" &&
         connRef.current.peerId === peerId
       ) {
-        void postSignal(peerId, "end");
+        void postSignal(peerId, "decline");
         teardown("No answer.");
       }
     }, REQUEST_TIMEOUT_MS);
@@ -174,7 +175,7 @@ export default function Home() {
 
   function cancelRequest() {
     if (connRef.current.kind === "requesting") {
-      void postSignal(connRef.current.peerId, "end");
+      void postSignal(connRef.current.peerId, "decline");
     }
     teardown();
   }
@@ -267,6 +268,12 @@ export default function Home() {
         break;
       }
       case "decline": {
+        if (incomingRef.current.some((request) => request.peerId === sig.fromId)) {
+          setIncoming(
+            incomingRef.current.filter((request) => request.peerId !== sig.fromId),
+          );
+          setDotPromptId((current) => (current === sig.fromId ? null : current));
+        }
         const c = connRef.current;
         if (c.kind === "requesting" && c.peerId === sig.fromId) {
           if (requestTimer.current) clearTimeout(requestTimer.current);
@@ -323,7 +330,13 @@ export default function Home() {
         if (!active) return;
         setPeers(data.peers);
         for (const s of data.signals) processSignalRef.current(s);
-      } catch {}
+      } catch (err) {
+        if (err instanceof Error && err.message === "blocked") {
+          active = false;
+          setBanned(true);
+          return;
+        }
+      }
       if (active) timer = setTimeout(tick, POLL_INTERVAL_MS);
     };
     tick();
@@ -348,8 +361,28 @@ export default function Home() {
   async function handleReady(name: string, gender: Gender, lat: number, lng: number) {
     setMyGender(gender);
     setMyLocation({ lat, lng });
-    secretRef.current = await join(sessionId, name, gender, lat, lng);
+    try {
+      secretRef.current = await join(sessionId, name, gender, lat, lng);
+    } catch (err) {
+      if (err instanceof Error && err.message === "blocked") {
+        setBanned(true);
+        return;
+      }
+      throw err;
+    }
     setPhase("live");
+  }
+
+  async function reportPeer() {
+    const current = connRef.current;
+    if (current.kind !== "connecting" && current.kind !== "connected") return;
+    try {
+      await report(sessionId, current.peerId, secretRef.current);
+      showNotice("Reported.");
+    } catch {
+      showNotice("Couldn't report. Try again.");
+      throw new Error("report failed");
+    }
   }
 
   function nameFor(id: string) {
@@ -358,6 +391,21 @@ export default function Home() {
 
   function genderFor(id: string) {
     return peers.find((p) => p.id === id)?.gender ?? null;
+  }
+
+  if (banned) {
+    return (
+      <div className="relative flex min-h-full flex-1 flex-col items-center justify-center overflow-hidden px-6 text-[var(--foreground)]">
+        <div className="chat-live-bg" aria-hidden="true" />
+        <div className="landing-scrim" aria-hidden="true" />
+        <div className="ui-card relative z-10 w-full max-w-xs rounded-3xl p-6 text-center">
+          <h1 className="text-lg font-semibold tracking-tight">You are blocked</h1>
+          <p className="mt-2 text-sm leading-relaxed text-white/55">
+            This network was reported too many times.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   if (phase === "gate") {
@@ -429,6 +477,7 @@ export default function Home() {
             addMessage(true, text);
           }}
           onStartVideo={startVideoRequest}
+          onReport={reportPeer}
           onEnd={endConnection}
         />
       )}

@@ -1,7 +1,8 @@
 // Pulse — coordination store only. Nothing here is durable user data:
 // rows are deleted on leave, on staleness, or after a signal is delivered.
 // Chat text and video are NOT modeled — they ride WebRTC peer-to-peer and
-// never reach the server.
+// never reach the server. Reports and IP blocks are the exception: they stay
+// so a network that was reported enough times cannot rejoin.
 
 generator client {
   provider = "prisma-client-js"
@@ -20,6 +21,7 @@ model Presence {
   lng       Float
   busy      Boolean  @default(false) // true while in an active connection
   partnerId String? // the other session in that connection
+  ipHash    String   @default("") // hash of the join IP; raw IP is not stored
   lastSeen  DateTime
 
   @@index([lastSeen])
@@ -35,6 +37,21 @@ model Knock {
 
   @@unique([toId, fromId])
   @@index([toId])
+}
+
+model Report {
+  // Each confirmed report counts. Two reports against one network block that IP.
+  id         String   @id @default(uuid())
+  reporterId String
+  targetKey  String
+  createdAt  DateTime @default(now())
+
+  @@index([targetKey])
+}
+
+model BlockedIp {
+  ipHash    String   @id
+  createdAt DateTime @default(now())
 }
 
 model Signal {
