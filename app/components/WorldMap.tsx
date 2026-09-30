@@ -161,7 +161,7 @@ export default function WorldMap({
   }, [peers, ready]);
 
   return (
-    <div className="absolute inset-0">
+    <div className="absolute inset-0 z-0">
       <div ref={containerRef} className="h-full w-full bg-zinc-900" />
 
       {!TOKEN && (

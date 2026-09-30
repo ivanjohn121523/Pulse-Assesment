@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function VideoPanel({
   localStream,
@@ -13,44 +13,72 @@ export default function VideoPanel({
 }) {
   const localRef = useRef<HTMLVideoElement>(null);
   const remoteRef = useRef<HTMLVideoElement>(null);
+  const [needsTap, setNeedsTap] = useState(false);
 
   useEffect(() => {
-    if (localRef.current && localRef.current.srcObject !== localStream) {
-      localRef.current.srcObject = localStream;
-    }
+    const el = localRef.current;
+    if (!el || el.srcObject === localStream) return;
+    el.srcObject = localStream;
+    if (localStream) void el.play().catch(() => {});
   }, [localStream]);
 
   useEffect(() => {
-    if (remoteRef.current && remoteRef.current.srcObject !== remoteStream) {
-      remoteRef.current.srcObject = remoteStream;
+    const el = remoteRef.current;
+    if (!el) return;
+    if (el.srcObject !== remoteStream) el.srcObject = remoteStream;
+    if (!remoteStream) {
+      setNeedsTap(false);
+      return;
     }
+    el.play()
+      .then(() => setNeedsTap(false))
+      .catch(() => setNeedsTap(true));
   }, [remoteStream]);
 
+  function playRemote() {
+    const el = remoteRef.current;
+    if (!el) return;
+    void el.play().then(() => setNeedsTap(false)).catch(() => {});
+  }
+
   return (
-    <div className="absolute inset-0 z-30 flex flex-col bg-black">
-      <div className="relative flex-1">
-        {/* Remote (full screen) */}
+    <div className="absolute inset-y-0 left-0 right-0 z-30 flex min-h-0 flex-col overflow-hidden bg-black md:right-[28rem]">
+      <div className="relative min-h-0 flex-1">
         <video
           ref={remoteRef}
           autoPlay
           playsInline
-          className="h-full w-full bg-zinc-900 object-cover"
+          onClick={playRemote}
+          className="absolute inset-0 h-full w-full bg-zinc-950 object-cover"
         />
         {!remoteStream && (
-          <div className="absolute inset-0 flex items-center justify-center text-zinc-500">
-            Waiting for stranger&rsquo;s video…
+          <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-zinc-400">
+            Waiting for their video…
           </div>
         )}
-        {/* Local (picture-in-picture) */}
-        <video
-          ref={localRef}
-          autoPlay
-          playsInline
-          muted
-          className="absolute bottom-4 right-4 h-40 w-28 rounded-lg border border-zinc-700 bg-zinc-800 object-cover"
-        />
+        {needsTap && (
+          <button
+            type="button"
+            onClick={playRemote}
+            className="absolute inset-0 flex items-center justify-center bg-black/40 text-sm font-medium text-white"
+          >
+            Tap to play video
+          </button>
+        )}
+        <div className="absolute right-4 top-4 w-36 overflow-hidden rounded-xl border border-white/20 shadow-lg sm:w-48">
+          <video
+            ref={localRef}
+            autoPlay
+            playsInline
+            muted
+            className="aspect-video w-full bg-zinc-900 object-cover [transform:scaleX(-1)]"
+          />
+          <span className="absolute bottom-2 left-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-semibold text-white">
+            You
+          </span>
+        </div>
       </div>
-      <div className="flex justify-center bg-zinc-950 p-4">
+      <div className="flex shrink-0 justify-center border-t border-zinc-800 bg-zinc-950 p-4">
         <button
           onClick={onEnd}
           className="rounded-full bg-red-500 px-8 py-3 font-semibold text-white hover:bg-red-400"
