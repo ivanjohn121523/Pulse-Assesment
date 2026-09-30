@@ -303,10 +303,14 @@ export default function Home() {
     };
   }, [sessionId, phase]);
 
-  async function handleReady(lat: number, lng: number) {
+  async function handleReady(name: string, lat: number, lng: number) {
     setMyLocation({ lat, lng });
-    await join(sessionId, lat, lng);
+    await join(sessionId, name, lat, lng);
     setPhase("live");
+  }
+
+  function nameFor(id: string) {
+    return peers.find((p) => p.id === id)?.name || "Stranger";
   }
 
   if (phase === "gate") {
@@ -344,7 +348,7 @@ export default function Home() {
 
       {conn.kind === "incoming" && (
         <ConnectionPrompt
-          title="A stranger wants to connect"
+          title={`${nameFor(conn.peerId)} wants to connect`}
           acceptLabel="Accept"
           declineLabel="Decline"
           onAccept={acceptIncoming}
@@ -354,6 +358,7 @@ export default function Home() {
 
       {inChat && (
         <ChatPanel
+          peerName={nameFor(conn.peerId)}
           messages={messages}
           connected={conn.kind === "connected"}
           videoBusy={video !== "none"}

@@ -92,7 +92,10 @@ export default function WorldMap({
         const el = document.createElement("div");
         el.className = "pulse-me";
         el.title = "You are here";
-        el.innerHTML = `<span class="pulse-me-label">Me</span>📍`;
+        const label = document.createElement("span");
+        label.className = "pulse-me-label";
+        label.textContent = "You";
+        el.append(label, "📍");
         // anchor "bottom" → the pin's tip sits on the exact coordinate.
         meMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "bottom" })
           .setLngLat([me.lng, me.lat])
@@ -126,7 +129,11 @@ export default function WorldMap({
           const el = document.createElement("button");
           el.className = "pulse-dot";
           el.style.background = dotColor(peer.id);
-          el.title = "Tap to connect";
+          el.title = `${peer.name} — tap to connect`;
+          const label = document.createElement("span");
+          label.className = "pulse-dot-label";
+          label.textContent = peer.name;
+          el.appendChild(label);
           el.addEventListener("click", (e) => {
             e.stopPropagation();
             if (canConnectRef.current) onPeerClickRef.current(peer.id);

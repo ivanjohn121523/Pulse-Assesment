@@ -2,15 +2,25 @@
 
 import { useState } from "react";
 
+const NAME_MAX = 20;
+
 export default function EntryGate({
   onReady,
 }: {
-  onReady: (lat: number, lng: number) => void;
+  onReady: (name: string, lat: number, lng: number) => void;
 }) {
+  const [name, setName] = useState("");
   const [status, setStatus] = useState<"idle" | "locating" | "error">("idle");
   const [error, setError] = useState<string>("");
+  const displayName = name.trim();
 
-  function enter() {
+  function enter(e: React.FormEvent) {
+    e.preventDefault();
+    if (!displayName) {
+      setStatus("error");
+      setError("Enter a username to continue.");
+      return;
+    }
     if (!("geolocation" in navigator)) {
       setStatus("error");
       setError("Your browser doesn't support location access.");
@@ -18,7 +28,7 @@ export default function EntryGate({
     }
     setStatus("locating");
     navigator.geolocation.getCurrentPosition(
-      (pos) => onReady(pos.coords.latitude, pos.coords.longitude),
+      (pos) => onReady(displayName, pos.coords.latitude, pos.coords.longitude),
       (err) => {
         setStatus("error");
         setError(
@@ -42,13 +52,24 @@ export default function EntryGate({
         </p>
       </div>
 
-      <button
-        onClick={enter}
-        disabled={status === "locating"}
-        className="rounded-full bg-emerald-400 px-8 py-3 font-semibold text-zinc-950 transition hover:bg-emerald-300 disabled:opacity-60"
-      >
-        {status === "locating" ? "Locating…" : "Enter Pulse"}
-      </button>
+      <form onSubmit={enter} className="flex w-full max-w-xs flex-col items-center gap-4">
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={NAME_MAX}
+          placeholder="Username"
+          autoComplete="nickname"
+          disabled={status === "locating"}
+          className="w-full rounded-full border border-zinc-700 bg-zinc-900 px-5 py-3 text-center text-zinc-100 outline-none placeholder:text-zinc-500 focus:border-emerald-400 disabled:opacity-60"
+        />
+        <button
+          type="submit"
+          disabled={status === "locating" || !displayName}
+          className="rounded-full bg-emerald-400 px-8 py-3 font-semibold text-zinc-950 transition hover:bg-emerald-300 disabled:opacity-60"
+        >
+          {status === "locating" ? "Locating…" : "Enter Pulse"}
+        </button>
+      </form>
 
       {status === "error" && (
         <p className="max-w-sm text-center text-sm text-red-400">{error}</p>
@@ -56,7 +77,7 @@ export default function EntryGate({
 
       <p className="max-w-sm text-center text-xs text-zinc-500">
         No sign-up. Your dot is placed 1–3&nbsp;km from your real location.
-        Nothing is stored — closing the tab ends everything.
+        Your name is removed when you close the tab.
       </p>
     </div>
   );

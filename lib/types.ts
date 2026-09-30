@@ -12,6 +12,7 @@ export type SignalType =
 
 export interface PeerDot {
   id: string;
+  name: string;
   lat: number;
   lng: number;
   busy: boolean;
